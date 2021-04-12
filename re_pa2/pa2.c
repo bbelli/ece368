@@ -150,9 +150,9 @@ void writePreorder(char* filename, Tnode *node){
 void writeCount(char *filename, int* ascii){
 
     output3 = fopen(filename, "wb");
-    //long tmp = 0;
+    char tmp = 0;
     for(int i=0; i < 257; i++){
-        //tmp = ascii[i];
+        tmp = ascii[i];
         fwrite(&ascii[i], 1, sizeof(long), output3);
     }
 
