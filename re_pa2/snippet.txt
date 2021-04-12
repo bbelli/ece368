@@ -1,0 +1,432 @@
+    //used for in main after reversing the stack to print the stack
+    printf("\n");
+    Snode* tmp = reverse_stack;
+    while(tmp != NULL){
+        char a = peek(&tmp);
+        printf("%c", a);
+        tmp = tmp->next;
+    }
+        printf("\n");
+
+        ---
+
+
+        int main(int argc, char ** argv){
+    printf("In Main\n");
+    if(argc != 7){
+        printf("args doesn't match expected value\n");
+        return EXIT_FAILURE;
+    }
+    FILE *fptr = fopen(argv[1], "rb");
+    if(fptr == NULL){
+        return EXIT_FAILURE;
+    }
+    long int size_compressed; //size_compressed: Number of bytes in compressed file
+    long int size_topology;   //size_topology: Number of bytes topology uses
+    long int size_original;   //size_original: Number of bytes in the uncompressed file
+
+    fread(&size_compressed, sizeof(long int) , 1, fptr);
+    fread(&size_topology, sizeof(long int), 1, fptr);
+    fread(&size_original, sizeof(long int), 1, fptr);
+    int size = sizeof(char)* sizeof(long int) * size_topology;
+
+    printf("Size Compressed: %ld\n", size_compressed);
+    printf("Size Topology: %ld\n", size_topology);
+    printf("Size Original: %ld\n", size_original);
+    
+    unsigned char *buffer;
+    int *val; 
+    buffer = (unsigned char*) malloc(sizeof(unsigned char) * size_topology);
+    size_t bytes_read = fread(buffer, sizeof(unsigned char), size_topology, fptr);
+    //val = (int*) malloc(sizeof(int) * (size_topology));
+    val = (int*) malloc(size);
+    fclose(fptr);
+
+    if(bytes_read != size_topology){
+        printf("Topology size and read bytes don't match!");
+    }
+
+    for(int i=0; i < size_topology; i++){
+      val[i] = buffer[i];
+    }
+
+    char *toVal; //toVal: char array of 8 to store every bit of a byte
+    char *all_topology;  //all_topology: char array of 8 * size_topology to store ALL bits of topology. 
+    int j; //j: index for all_topology
+    // toVal = (char*) malloc(sizeof(char)* sizeof(int));
+    // all_topology = (char*) malloc(size);
+    toVal = (char*) malloc(size);
+    all_topology = (char*) malloc(size);
+
+    //For Loop where conversion of the bytes in val to bits happen, output is stored in all_topology 
+    for(int i=0; i < size_topology; i++){
+        j = i*8;
+        byte_to_bits(val[i], toVal);
+        for(int k=0; k< 8;k++){
+            all_topology[j] = toVal[k];
+            printf("%d", all_topology[j]);
+            j++;
+        }
+        printf("\n");
+    }
+    //no memory issues up to here
+
+    Snode* stack = NULL;
+    int numOfBytes = byte_to_char(all_topology, &stack, size);
+    Tnode* tmp = NULL;
+    // while(1){
+    //     if(isEmpty(stack)){
+    //         break;
+    //     } else{
+    //         tmp = pop(&stack);
+    //     }
+    // }
+
+    remove_zeroes(stack);
+    printf("NumOfBYtes: %d\n", numOfBytes);
+    Tnode* node;
+    Snode* reverse_stack;
+    int flag = 1;
+    while(flag){
+        node = pop(&stack);
+        if(node == NULL){
+            break;
+        }
+        printf("%c\n", node->id);
+        push(&reverse_stack, node); 
+    }
+    printf("\n");
+
+
+    // Snode* tmpa = reverse_stack;
+    // while(reverse_stack != NULL){
+    //     char a = peek(&tmpa);
+    //     printf("\n");
+    //     printf("%c", a);
+    //     tmpa = tmpa->next;
+    // }
+
+
+    // Topolgy created in the same format as pg6 line1. into stack "reverse_stack"
+    // Lots of memory errors and memory lost
+    // Still need to build tree
+
+    // while(flag){
+    //     node = pop(&reverse_stack);
+    //     if(node == NULL){
+    //         break;
+    //     }
+    // }
+
+
+    //free(node);
+    free(all_topology);
+    free(toVal);
+    free(tmp);
+    // free(node);
+    free(buffer);
+    free(val);
+    return EXIT_SUCCESS;
+}
+
+
+///---- Most Recent PA2 //////---
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#include <stdbool.h> 
+#include "stack.h"
+
+FILE *output1;
+FILE *output2;
+FILE *output3;
+
+void byte_to_bits(int byte, char *bits);
+int byte_to_char(char *topology, Snode** stack, int size, Tnode* node, Tnode* node1, Tnode* node2);
+Tnode* buildTree(Tnode* root, Snode** stack);
+
+void byte_to_bits(int byte, char *bits){
+   //1. Get base 10 of the value using bitwise operations
+   //2. Convert base10 value to binary.
+   unsigned char bitmask = 1;
+   //unsigned char bits[8];
+   for(int i=0; i < 8; i++){
+      bits[i] = (byte & (bitmask << i)) != 0;
+   }
+}
+
+void remove_zeroes(Snode** stack){
+
+    if(isEmpty(*stack)){
+        return NULL;
+    }
+    //printf("in zeros\n");
+    int val;
+    val = peek(stack);
+    //printf("peek: %d", val);
+    if(val == 48){
+        pop(stack);
+    } else{
+        return;
+    }
+}
+
+/*
+void decode(Tnode* root, ){
+    int bit;
+    int charCount = 0;
+    Tnode* tmp = NULL;
+    
+    while(fread(bit, sizeof(int), 1, fptr)){
+        if(bit == 0){
+            tmp = root->left;
+            root = tmp;
+        } else{
+            tmp = root->right;
+            root = tmp;
+        }
+
+        if(tmp->id != 0){
+            fprintf(output2, "%c", tmp->id);
+            charCount++:
+            root = treeRoot;
+        }
+
+        if(charCount == size_original){
+            break;
+        }
+    }
+
+}
+
+*/
+
+int byte_to_char(char *topology, Snode** stack, int size, Tnode* node, Tnode* node1, Tnode* node2){
+    int numOfBytes = 0;
+    char ascii_concat[8]; 
+    unsigned char ascii_val = 0;  
+    int countChar =0;
+    //char char_top[80];
+    for(int i=0; i < size; i++){
+        if(topology[i] == 0){
+            //char_top[i] = 48; //ASCII Value of 0
+            node = createNode(48, 0);
+            //node = NULL;
+            push(stack, node);
+            //free(node);
+            numOfBytes++;
+        } else{
+            ascii_val = 0xff;
+            //char_top[i] = 49; //ASCII Value of 1
+            //node1 = createNode(49, 1);
+            //push(stack, node1);
+            //free(node1);
+            numOfBytes++;
+            i++; //skip the leaf node indicator
+            countChar++;  
+            for(int j=0; j<8; j++){
+                ascii_concat[j] = topology[i++];
+            }
+            i--;
+            for(int j=0; j<8; j++){
+                if(ascii_concat[j] == 0){
+                    ascii_val = (1 << (j)) ^ ascii_val;
+                }
+            }
+            //printf("%c\n", ascii_val);
+            //Create leaf node
+            //char_top[i] = ascii_val;
+
+            //byte_to_char (pa2.c:73)
+            node2 = createNode(ascii_val, 2);
+            //node2 = NULL;
+            push(stack, node2);
+            //free(node2);
+            numOfBytes = numOfBytes + 8;
+            //count characters in header
+        }
+        countChar++;
+    }
+
+    // printf("chars\n");
+    // for(int i=0;i < 24; i++){
+    //    printf("%c", char_top[i]);
+    // }
+    //free(node);
+    return numOfBytes;
+    
+}
+
+void writePreorder(char* filename, Tnode *node){
+    if (node == NULL) 
+      return;
+    output1 = fopen(filename, "w");
+    if(output1 == NULL){
+      //printf("FPTR is NULL\n");
+      return;
+    }
+    preorder(node);
+    fclose(output1);
+}
+
+Tnode* buildTree(Tnode* root, Snode** stack){
+
+    if(isEmpty(*stack)){
+        printf("Stack is empty!\n");
+        return NULL;
+    }
+    Tnode *tmp = NULL;
+    tmp = pop(stack);
+    if(tmp->flag != 0){
+        return tmp;
+    } else{
+        root = tmp;
+        root->left = buildTree(root, stack);
+        root->right = buildTree(root, stack);
+        return root;
+    }
+
+}
+
+
+int main(int argc, char ** argv){
+        printf("In Main\n");
+        if(argc != 7){
+            printf("args doesn't match expected value\n");
+            return EXIT_FAILURE;
+        }
+        FILE *fptr = fopen(argv[1], "rb");
+        if(fptr == NULL){
+            return EXIT_FAILURE;
+        }
+        long int size_compressed; //size_compressed: Number of bytes in compressed file
+        long int size_topology;   //size_topology: Number of bytes topology uses
+        long int size_original;   //size_original: Number of bytes in the uncompressed file
+    
+        fread(&size_compressed, sizeof(long int) , 1, fptr);
+        fread(&size_topology, sizeof(long int), 1, fptr);
+        fread(&size_original, sizeof(long int), 1, fptr);
+        int size = sizeof(char)* sizeof(long int) * size_topology;
+    
+        printf("Size Compressed: %ld\n", size_compressed);
+        printf("Size Topology: %ld\n", size_topology);
+        printf("Size Original: %ld\n", size_original);
+        
+        unsigned char *buffer;
+        int *val; 
+        buffer = (unsigned char*) malloc(sizeof(unsigned char) * size_topology);
+        size_t bytes_read = fread(buffer, sizeof(unsigned char), size_topology, fptr);
+        //val = (int*) malloc(sizeof(int) * (size_topology));
+        val = (int*) malloc(size);
+        //fclose(fptr);
+    
+        if(bytes_read != size_topology){
+            printf("Topology size and read bytes don't match!");
+        }
+    
+        for(int i=0; i < size_topology; i++){
+          val[i] = buffer[i];
+        }
+    
+        char *toVal; //toVal: char array of 8 to store every bit of a byte
+        char *all_topology;  //all_topology: char array of 8 * size_topology to store ALL bits of topology. 
+        int j; //j: index for all_topology
+        // toVal = (char*) malloc(sizeof(char)* sizeof(int));
+        // all_topology = (char*) malloc(size);
+        toVal = (char*) malloc(size);
+        all_topology = (char*) malloc(size);
+    
+        //For Loop where conversion of the bytes in val to bits happen, output is stored in all_topology 
+        for(int i=0; i < size_topology; i++){
+            j = i*8;
+            byte_to_bits(val[i], toVal);
+            for(int k=0; k< 8;k++){
+                all_topology[j] = toVal[k];
+                printf("%d", all_topology[j]);
+                j++;
+            }
+            printf("\n");
+        }
+        
+    
+    //-----NO MEMORY ISSUES UP TO HERE-----
+    //-----NO MEMORY ISSUES UP TO HERE-----
+    //-----NO MEMORY ISSUES UP TO HERE-----
+
+    Snode* stack = NULL;
+    Tnode* tmpnode = NULL;
+    Tnode* tmpnode1 = NULL;
+    Tnode* tmpnode2 = NULL;
+    int numOfBytes = byte_to_char(all_topology, &stack, size, tmpnode, tmpnode1, tmpnode2);
+    // free(tmpnode);
+    // free(tmpnode1);
+    // free(tmpnode2);
+    // while(1){
+    //     if(isEmpty(stack)){
+    //         break;
+    //     } else{
+    //         tmp = pop(&stack);
+    //     }
+    // }
+    remove_zeroes(&stack);
+    printf("NumOfBYtes: %d\n", numOfBytes);
+    Tnode* node = NULL;
+    Snode* reverse_stack = NULL;
+    int flag = 1;
+
+    while(flag){
+        node = pop(&stack);
+        if(node == NULL){
+            break;
+        }
+        printf("%c", node->id);
+        printf("\n");
+        push(&reverse_stack, node); 
+    }
+
+
+
+    //buildtree
+
+    printf("----\n");
+    Snode* tmpa = reverse_stack;
+    while(tmpa != NULL){
+        char a = peek(&tmpa);
+        printf("%c", a);
+        printf("\n");
+        tmpa = tmpa->next;
+    }
+    printf("----\n");
+
+    Tnode *treeRoot = NULL;
+    treeRoot = buildTree(treeRoot, &reverse_stack);
+    writePreorder(argv[2], treeRoot);
+    
+
+    
+    
+    Tnode* tmp = NULL;
+    // while(1){
+    //     if(isEmpty(reverse_stack)){
+    //         break;
+    //     } else{
+    //         tmp = pop(&reverse_stack);
+    //         //free(tmp);
+    //     }
+    // }
+
+    free(tmp);
+    free(all_topology);
+    free(toVal);
+    free(tmpa);
+    free(node);
+    //free(stack);
+    //free(reverse_stack);
+    free(buffer);
+    free(val);
+    Destroy_tree(treeRoot);
+    fclose(fptr);
+    return EXIT_SUCCESS;
+}
